@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Group Security Khusus: Petugas Keamanan -->
+    <record id="group_hostel_satpam" model="res.groups">
+        <field name="name">Petugas Keamanan</field>
+        <field name="privilege_id" ref="sirita_mahad.res_groups_privilege_hostel"/>
+        <field name="sequence">15</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+        <field name="comment">Akses terbatas untuk mengoperasikan Scanner Perizinan Pos Satpam Gate System (/mahad/satpam/scan).</field>
+    </record>
+
+</odoo>

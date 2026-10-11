@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Web Scanner Page Khusus Pos Satpam -->
+    <template id="satpam_scan_page" name="Gate Scanner Pos Satpam">
+        <t t-call="website.layout">
+            <div class="container py-4">
+                <div class="row justify-content-center">
+                    <div class="col-12 col-md-8 col-lg-6 text-center">
+                        <div class="card shadow-lg border-0 rounded-4 p-4">
+                            <div class="mb-3">
+                                <span class="badge bg-primary px-3 py-2 rounded-pill fs-6">
+                                    <i class="fa fa-shield me-1"/> POS SATPAM GATE SYSTEM
+                                </span>
+                            </div>
+                            <h3 class="fw-bold text-dark mb-1">Scanner Perizinan Mahasantri</h3>
+                            <p class="text-muted small mb-4">Arahkan kamera ke QR Code Surat Izin Mahasantri atau ketik Kode Token secara manual.</p>
+
+                            <!-- Selection Mode -->
+                            <div class="btn-group w-100 mb-4" role="group">
+                                <input type="radio" class="btn-check" name="gate_action" id="act_checkout" value="checkout" checked="checked"/>
+                                <label class="btn btn-outline-danger fw-bold py-2" for="act_checkout">
+                                    <i class="fa fa-sign-out me-1"/> SCAN KELUAR
+                                </label>
+
+                                <input type="radio" class="btn-check" name="gate_action" id="act_checkin" value="checkin"/>
+                                <label class="btn btn-outline-success fw-bold py-2" for="act_checkin">
+                                    <i class="fa fa-sign-in me-1"/> SCAN KEMBALI
+                                </label>
+                            </div>
+
+                            <!-- Live Camera Scanner Viewport -->
+                            <div class="mb-3">
+                                <div id="reader" class="rounded-3 border bg-black overflow-hidden shadow-inner" style="min-height: 250px;"></div>
+                                <div class="mt-2 text-center">
+                                    <button id="btn_toggle_camera" type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        <i class="fa fa-camera me-1"/> Buka Kamera Scanner
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Input Manual Token / QR Code Result -->
+                            <div class="input-group mb-3">
+                                <input type="text" id="manual_token" class="form-control form-control-lg text-uppercase text-center fw-bold" placeholder="Ketik Kode Token (misal: A3F912B8)..."/>
+                                <button class="btn btn-primary px-4 fw-bold" type="button" id="btn_verify_token">
+                                    <i class="fa fa-check-circle me-1"/> Verifikasi
+                                </button>
+                            </div>
+
+                            <!-- Alert Result Container -->
+                            <div id="scan_result" class="d-none alert mt-3 text-start rounded-3 shadow-sm p-3"></div>
+
+                            <hr class="my-4"/>
+                            <div class="text-muted small">
+                                <i class="fa fa-info-circle me-1"/> Sistem terverifikasi otomatis dengan database Ma'had Al-Jami'ah IAIN Parepare.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Include html5-qrcode Library for Camera Scanning -->
+            <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+            <!-- Client Script for Scan Verification & Live Camera -->
+            <script type="text/javascript">
+                document.addEventListener('DOMContentLoaded', function () {
+                    const btnVerify = document.getElementById('btn_verify_token');
+                    const inputToken = document.getElementById('manual_token');
+                    const resultDiv = document.getElementById('scan_result');
+                    const btnToggleCam = document.getElementById('btn_toggle_camera');
+
+                    let html5QrcodeScanner = null;
+                    let isCameraRunning = false;
+
+                    function processScan(scannedCode) {
+                        const token = (scannedCode || inputToken.value).trim();
+                        const action = document.querySelector('input[name="gate_action"]:checked').value;
+
+                        if (!token) {
+                            alert('Harap masukkan Kode Token QR!');
+                            return;
+                        }
+
+                        btnVerify.disabled = true;
+                        btnVerify.innerHTML = '<i class="fa fa-spinner fa-spin me-1"/> Memproses...';
+                        resultDiv.className = 'd-none alert mt-3 text-start rounded-3 shadow-sm p-3';
+
+                        const formData = new FormData();
+                        formData.append('token', token);
+                        formData.append('action', action);
+
+                        fetch('/api/mahad/gate/verify', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            btnVerify.disabled = false;
+                            btnVerify.innerHTML = '<i class="fa fa-check-circle me-1"/> Verifikasi';
+                            resultDiv.classList.remove('d-none');
+
+                            if (data.status === 'success') {
+                                resultDiv.className = 'alert alert-success mt-3 text-start rounded-3 shadow-sm p-3';
+                                resultDiv.innerHTML = `
+                                    <h5 class="fw-bold mb-1"><i class="fa fa-check-circle me-2"/> ${data.message}</h5>
+                                    <hr class="my-2"/>
+                                    <div><strong>Mahasantri:</strong> ${data.student_name}</div>
+                                    <div><strong>No. Izin:</strong> ${data.permit_number}</div>
+                                    <div><strong>Jenis:</strong> ${data.permit_type}</div>
+                                    ${data.destination ? `<div><strong>Tujuan:</strong> ${data.destination}</div>` : ''}
+                                `;
+                                inputToken.value = '';
+                            } else if (data.status === 'warning') {
+                                resultDiv.className = 'alert alert-warning mt-3 text-start rounded-3 shadow-sm p-3';
+                                resultDiv.innerHTML = `<h5 class="fw-bold mb-0"><i class="fa fa-exclamation-triangle me-2"/> ${data.message}</h5>`;
+                            } else {
+                                resultDiv.className = 'alert alert-danger mt-3 text-start rounded-3 shadow-sm p-3';
+                                resultDiv.innerHTML = `<h5 class="fw-bold mb-0"><i class="fa fa-times-circle me-2"/> ${data.message}</h5>`;
+                            }
+                        })
+                        .catch(err => {
+                            btnVerify.disabled = false;
+                            btnVerify.innerHTML = '<i class="fa fa-check-circle me-1"/> Verifikasi';
+                            resultDiv.classList.remove('d-none');
+                            resultDiv.className = 'alert alert-danger mt-3 text-start rounded-3 shadow-sm p-3';
+                            resultDiv.innerHTML = `<h5 class="fw-bold mb-0"><i class="fa fa-exclamation-circle me-2"/> Terjadi kesalahan server/koneksi.</h5>`;
+                        });
+                    }
+
+                    function startCameraScanner() {
+                        if (isCameraRunning) return;
+                        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 220, height: 220 } });
+                        html5QrcodeScanner.render((decodedText) => {
+                            inputToken.value = decodedText;
+                            processScan(decodedText);
+                        }, (error) => {
+                            // ignore scan errors
+                        });
+                        isCameraRunning = true;
+                        btnToggleCam.innerHTML = '<i class="fa fa-stop me-1"/> Matikan Kamera Scanner';
+                        btnToggleCam.className = 'btn btn-sm btn-outline-danger rounded-pill px-3';
+                    }
+
+                    function stopCameraScanner() {
+                        if (html5QrcodeScanner &amp;&amp; isCameraRunning) {
+                            html5QrcodeScanner.clear().catch(error => console.error(error));
+                            isCameraRunning = false;
+                            btnToggleCam.innerHTML = '<i class="fa fa-camera me-1"/> Buka Kamera Scanner';
+                            btnToggleCam.className = 'btn btn-sm btn-outline-primary rounded-pill px-3';
+                        }
+                    }
+
+                    btnToggleCam.addEventListener('click', function() {
+                        if (isCameraRunning) {
+                            stopCameraScanner();
+                        } else {
+                            startCameraScanner();
+                        }
+                    });
+
+                    btnVerify.addEventListener('click', () => processScan());
+                    inputToken.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            processScan();
+                        }
+                    });
+                });
+            </script>
+        </t>
+    </template>
+</odoo>

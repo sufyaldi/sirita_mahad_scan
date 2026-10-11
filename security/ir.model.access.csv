@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mahad_permit_satpam,mahad.permit.satpam,sirita_mahad_pembinaan.model_mahad_permit,sirita_mahad_scan.group_hostel_satpam,1,1,0,0

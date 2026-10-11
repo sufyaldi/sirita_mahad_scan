@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit portal_my_permits untuk menambahkan Tampilan Kode QR Token & Tombol Cetak / Tampil QR -->
+    <template id="portal_my_permits_qr_extension" inherit_id="sirita_mahad_portal.portal_my_permits" name="Portal Permits QR Code Extension">
+        <xpath expr="//table//thead//tr" position="inside">
+            <th>Kode Token QR</th>
+        </xpath>
+
+        <xpath expr="//table//tbody//tr" position="inside">
+            <td>
+                <span class="badge bg-dark text-wrap px-2 py-1 font-monospace" t-esc="p.qr_code_token or '-'"/>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1 py-0 px-2" data-bs-toggle="modal" t-attf-data-bs-target="#modalQR_#{p.id}">
+                    <i class="fa fa-qrcode"/> QR
+                </button>
+
+                <!-- Modal QR Code Card -->
+                <div class="modal fade" t-attf-id="modalQR_#{p.id}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content border-0 shadow text-center p-3">
+                            <div class="modal-header border-0 pb-0">
+                                <h6 class="modal-title fw-bold text-primary"><i class="fa fa-id-badge me-1"/> KARTU PERIZINAN</h6>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"/>
+                            </div>
+                            <div class="modal-body py-2">
+                                <div class="bg-light p-3 rounded-3 mb-2">
+                                    <!-- Dynamic QR Code API -->
+                                    <img t-attf-src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;data=#{p.qr_code_token}" class="img-fluid rounded shadow-sm" alt="QR Code"/>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-0 font-monospace" t-esc="p.qr_code_token"/>
+                                <small class="text-muted d-block mt-1" t-esc="p.name"/>
+                                <div class="mt-2 text-start small border-top pt-2">
+                                    <div><strong>Mahasantri:</strong> <t t-esc="p.student_id.name"/></div>
+                                    <div><strong>Jenis:</strong> <t t-esc="p.permit_type"/></div>
+                                    <div><strong>Tujuan:</strong> <t t-esc="p.destination"/></div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 pt-0">
+                                <button type="button" class="btn btn-sm btn-secondary w-100 rounded-pill" data-bs-dismiss="modal">Tutup</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </xpath>
+    </template>
+</odoo>
